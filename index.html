@@ -67,7 +67,8 @@
       font-weight: bold;
       text-align: center;
       transition: transform 0.6s ease, opacity 0.6s ease, background-color 0.6s ease;
-      pointer-events: none; /* Por defecto, solo la frontal se habilita */
+      /* Por defecto, deshabilitamos el clic; se habilita solo la frontal */
+      pointer-events: none;
     }
     /* Flechas de navegación */
     .arrow {
@@ -201,9 +202,10 @@
     // Definimos escalas máximas y mínimas
     const maxScale = 1;
     const minScale = 0.5;
-    // Factor de inclinación
+    // Para este carrusel 2D simulado, definimos el "frente" como el punto con el mayor valor Y en la elipse.
+    // Dado que simula una elipse con inclinación (tilt), definimos un factor de inclinación:
     const tiltFactor = 0.4;
-    // yMax / yMin para el anillo elíptico
+    // Calculamos los valores extremos en Y:
     const yMax = ringRadius * tiltFactor;
     const yMin = -ringRadius * tiltFactor;
 
@@ -214,14 +216,15 @@
     const sphereElements = [];
 
     /**********************************************
-     * FUNCIÓN: Tamaño dinámico según el texto
+     * FUNCIÓN: Tamaño dinámico según el texto (20% más pequeño)
      **********************************************/
     function getSphereSize(name) {
       const minSize = 140;
       const extraPerChar = 12;
       const threshold = 6;
       const len = name.length;
-      return len <= threshold ? minSize : minSize + (len - threshold) * extraPerChar;
+      const size = len <= threshold ? minSize : minSize + (len - threshold) * extraPerChar;
+      return size * 0.5; // Reducido en un 50%
     }
 
     /**********************************************
@@ -236,7 +239,7 @@
       sphere.style.height = size + "px";
       sphere.style.lineHeight = size + "px";
       sphere.textContent = tech;
-      // Agregamos clic, pero solo el frontal estará habilitado
+      // Agregamos clic, pero luego solo se habilitará el frontal
       sphere.addEventListener('click', () => {
         openTechModal(tech);
       });
@@ -248,8 +251,11 @@
      * ACTUALIZAR POSICIONES, ESCALA, OPCACIDAD y POINTER EVENTS
      **********************************************/
     function updateCarousel() {
-      // Origen (0,0) asumido
+      // Centro del contenedor: suponemos container de 800x800, centro en (400,400)
+      const cx = 0;
+      const cy = 0;
       let minDiff = Infinity;
+      // Primer pase: calcular posición, escala, y guardar "diff" respecto al frente
       sphereElements.forEach((sphere, i) => {
         let angle = globalAngle + i * angleStep;
         angle = ((angle % 360) + 360) % 360;
@@ -257,14 +263,11 @@
         const xPos = ringRadius * Math.cos(rad);
         const yPos = ringRadius * Math.sin(rad) * tiltFactor;
         const size = getSphereSize(sphere.textContent);
-
-        sphere.style.left = (xPos - size / 2) + "px";
-        sphere.style.top = (yPos - size / 2) + "px";
-
+        sphere.style.left = (cx + xPos - size / 2) + "px";
+        sphere.style.top = (cy + yPos - size / 2) + "px";
         const scale = minScale + ((yPos - yMin) / (yMax - yMin)) * (maxScale - minScale);
         sphere.style.transform = `scale(${scale})`;
         sphere.style.opacity = scale;
-
         const diff = Math.abs(yMax - yPos);
         sphere.dataset.diff = diff;
         if (diff < minDiff) {
@@ -272,16 +275,15 @@
         }
         sphere.style.zIndex = Math.round(scale * 1000);
       });
-
-      // Solo la esfera con diff ~ minDiff (±5) se pone en azul, las demás en gris
+      // Segundo pase: solo la esfera con diff casi igual a minDiff (dentro de 5px) se muestra en color original (azul profundo), el resto, gris.
       sphereElements.forEach((sphere) => {
         const diff = parseFloat(sphere.dataset.diff);
         if (Math.abs(diff - minDiff) < 5) {
           sphere.style.pointerEvents = "auto";
-          sphere.style.backgroundColor = "#003366"; // Azul profundo
+          sphere.style.backgroundColor = "#003366"; // Azul profundo para el frente
         } else {
           sphere.style.pointerEvents = "none";
-          sphere.style.backgroundColor = "#ccc"; // Gris
+          sphere.style.backgroundColor = "#ccc"; // Gris para las inactivas
         }
       });
     }
@@ -304,26 +306,21 @@
      **********************************************/
     let touchStartX = 0;
     const SWIPE_THRESHOLD = 50;
-
-    // Detectar touchstart y guardar la posición X inicial
     document.getElementById('container').addEventListener('touchstart', (e) => {
       if (e.changedTouches && e.changedTouches.length > 0) {
         touchStartX = e.changedTouches[0].clientX;
       }
     });
-
-    // Al terminar el toque, comparamos la posición final con la inicial
     document.getElementById('container').addEventListener('touchend', (e) => {
       if (e.changedTouches && e.changedTouches.length > 0) {
         const touchEndX = e.changedTouches[0].clientX;
         const deltaX = touchEndX - touchStartX;
-
         if (deltaX > SWIPE_THRESHOLD) {
-          // Swipe derecha => rotar carrusel a la izquierda
+          // Swipe derecha => rotar a la izquierda
           globalAngle -= angleStep;
           updateCarousel();
         } else if (deltaX < -SWIPE_THRESHOLD) {
-          // Swipe izquierda => rotar carrusel a la derecha
+          // Swipe izquierda => rotar a la derecha
           globalAngle += angleStep;
           updateCarousel();
         }
