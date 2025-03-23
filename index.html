@@ -204,7 +204,64 @@
       border-radius: 4px;
       margin-right: 5px;
     }
+	
+	/* Para la nave */
+.nave {
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+
+.nave:hover {
+  box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.5);
+}
+
+
+#moreAboutBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  /* El padding es opcional, sirve para que haya espacio clicable alrededor del SVG */
+  padding: 8px;
+}
+
+#moreAboutBtn svg {
+  /* Aplica la sombra al contorno del cohete */
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+#moreAboutBtn:hover svg {
+  transform: scale(1.1);
+  filter: drop-shadow(0 6px 6px rgba(0,0,0,0.4));
+}
+
+
+
+
+/* Para los planetas elegibles */
+.planet:hover {
+  cursor: pointer;
+  /* Puedes agregar otros efectos, como un ligero escalado o cambio de color */
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+/* estilo de letra*/
+
+h1, h2, .title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 400;
+}
+
+
   </style>
+ <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap">
+ 
 </head>
 <body>
   <div id="container">
@@ -317,16 +374,18 @@
         sphere.style.zIndex = Math.round(scale * 1000);
       });
 
-      sphereElements.forEach((sphere) => {
-        const diff = parseFloat(sphere.dataset.diff);
-        if (Math.abs(diff - minDiff) < 5) {
-          sphere.style.pointerEvents = "auto";
-          sphere.style.backgroundColor = "#003366"; // Azul profundo
-        } else {
-          sphere.style.pointerEvents = "none";
-          sphere.style.backgroundColor = "#ccc"; // Gris
-        }
-      });
+sphereElements.forEach((sphere) => {
+  const diff = parseFloat(sphere.dataset.diff);
+  if (Math.abs(diff - minDiff) < 5) {
+    sphere.style.pointerEvents = "auto";
+    sphere.style.backgroundColor = "#003366"; // Azul profundo
+    sphere.classList.add('planet');  // Agrega la clase 'planet'
+  } else {
+    sphere.style.pointerEvents = "none";
+    sphere.style.backgroundColor = "#ccc"; // Gris
+    sphere.classList.remove('planet'); // Quita la clase 'planet'
+  }
+});
     }
     updateCarousel();
 
