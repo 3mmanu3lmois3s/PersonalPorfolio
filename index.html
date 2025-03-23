@@ -51,7 +51,6 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      /* No es visible, solo sirve de referencia para posicionar las esferas */
       width: 0;
       height: 0;
     }
@@ -67,8 +66,7 @@
       font-weight: bold;
       text-align: center;
       transition: transform 0.6s ease, opacity 0.6s ease, background-color 0.6s ease;
-      /* Por defecto, deshabilitamos el clic; se habilita solo la frontal */
-      pointer-events: none;
+      pointer-events: none; /* Por defecto, deshabilitamos el clic */
     }
     /* Flechas de navegación */
     .arrow {
@@ -91,6 +89,28 @@
     }
     #leftArrow { left: 5%; }
     #rightArrow { right: 5%; }
+
+    /* Botón con icono de nave espacial (ya existente) => Abrirá un modal con Soft Skills, Plan de Carrera, Certificaciones */
+    #moreAboutBtn {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      z-index: 30;
+    }
+    #moreAboutBtn svg {
+      width: 50px;
+      height: 50px;
+      fill: #007ACC;
+      transition: transform 0.3s ease;
+    }
+    #moreAboutBtn:hover svg {
+      transform: scale(1.1);
+    }
+
     /* Modal */
     .modal {
       display: none;
@@ -166,6 +186,24 @@
       color: #007ACC;
       text-decoration: none;
     }
+
+    /* Secciones dentro del modal "Ver más sobre mí" */
+    .section-title {
+      font-size: 18px;
+      margin: 10px 0;
+      color: #003366;
+    }
+    .section-content {
+      margin-bottom: 15px;
+    }
+    .icon-placeholder {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background: gray;
+      border-radius: 4px;
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
@@ -174,6 +212,13 @@
     <div id="carousel"></div>
     <div class="arrow" id="leftArrow">&#9664;</div>
     <div class="arrow" id="rightArrow">&#9654;</div>
+
+    <!-- Botón con icono de nave espacial => "Ver más sobre mí" -->
+    <button id="moreAboutBtn" title="Ver más sobre mí">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <path d="M505 19.1c-4.5-4.5-11.8-4.5-16.3 0L346.7 161.1C316.2 140 280.7 128 244 128c-79.5 0-144 64.5-144 144 0 36.7 12 72.2 33.1 102.7L19.1 505c-4.5 4.5-4.5 11.8 0 16.3 4.5 4.5 11.8 4.5 16.3 0l123.7-123.7c30.5 21.1 66 33.1 102.7 33.1 79.5 0 144-64.5 144-144 0-36.7-12-72.2-33.1-102.7L505 35.4c4.5-4.5 4.5-11.8 0-16.3z"/>
+      </svg>
+    </button>
   </div>
 
   <div class="modal" id="modal">
@@ -192,20 +237,16 @@
       "ASP", "JSP", "AWS Cloud", "Azure Cloud", "Hilos",
       "Stateless", "Serverless", "WebSockets", "ServiceWorkers", "Docker",
       "React", "Vue", "SQL", "NoSQL", "COBOL",
-      "Demo ETL", "Lenguaje Go", "C#", "Electron", "Mobile"
+      "Demo ETL", "Lenguaje Go", "C#", "Electron", "Mobile", "PHP", "NodeJS"
     ];
     const totalTech = technologies.length;
     const angleStep = 360 / totalTech;
     let globalAngle = 0; // Ángulo global del carrusel
-    // Usamos un radio grande para el anillo
+
     const ringRadius = 400;
-    // Definimos escalas máximas y mínimas
     const maxScale = 1;
     const minScale = 0.5;
-    // Para este carrusel 2D simulado, definimos el "frente" como el punto con el mayor valor Y en la elipse.
-    // Dado que simula una elipse con inclinación (tilt), definimos un factor de inclinación:
     const tiltFactor = 0.4;
-    // Calculamos los valores extremos en Y:
     const yMax = ringRadius * tiltFactor;
     const yMin = -ringRadius * tiltFactor;
 
@@ -239,7 +280,6 @@
       sphere.style.height = size + "px";
       sphere.style.lineHeight = size + "px";
       sphere.textContent = tech;
-      // Agregamos clic, pero luego solo se habilitará el frontal
       sphere.addEventListener('click', () => {
         openTechModal(tech);
       });
@@ -251,11 +291,9 @@
      * ACTUALIZAR POSICIONES, ESCALA, OPCACIDAD y POINTER EVENTS
      **********************************************/
     function updateCarousel() {
-      // Centro del contenedor: suponemos container de 800x800, centro en (400,400)
       const cx = 0;
       const cy = 0;
       let minDiff = Infinity;
-      // Primer pase: calcular posición, escala, y guardar "diff" respecto al frente
       sphereElements.forEach((sphere, i) => {
         let angle = globalAngle + i * angleStep;
         angle = ((angle % 360) + 360) % 360;
@@ -263,11 +301,14 @@
         const xPos = ringRadius * Math.cos(rad);
         const yPos = ringRadius * Math.sin(rad) * tiltFactor;
         const size = getSphereSize(sphere.textContent);
+
         sphere.style.left = (cx + xPos - size / 2) + "px";
         sphere.style.top = (cy + yPos - size / 2) + "px";
+
         const scale = minScale + ((yPos - yMin) / (yMax - yMin)) * (maxScale - minScale);
         sphere.style.transform = `scale(${scale})`;
         sphere.style.opacity = scale;
+
         const diff = Math.abs(yMax - yPos);
         sphere.dataset.diff = diff;
         if (diff < minDiff) {
@@ -275,15 +316,15 @@
         }
         sphere.style.zIndex = Math.round(scale * 1000);
       });
-      // Segundo pase: solo la esfera con diff casi igual a minDiff (dentro de 5px) se muestra en color original (azul profundo), el resto, gris.
+
       sphereElements.forEach((sphere) => {
         const diff = parseFloat(sphere.dataset.diff);
         if (Math.abs(diff - minDiff) < 5) {
           sphere.style.pointerEvents = "auto";
-          sphere.style.backgroundColor = "#003366"; // Azul profundo para el frente
+          sphere.style.backgroundColor = "#003366"; // Azul profundo
         } else {
           sphere.style.pointerEvents = "none";
-          sphere.style.backgroundColor = "#ccc"; // Gris para las inactivas
+          sphere.style.backgroundColor = "#ccc"; // Gris
         }
       });
     }
@@ -316,11 +357,9 @@
         const touchEndX = e.changedTouches[0].clientX;
         const deltaX = touchEndX - touchStartX;
         if (deltaX > SWIPE_THRESHOLD) {
-          // Swipe derecha => rotar a la izquierda
           globalAngle -= angleStep;
           updateCarousel();
         } else if (deltaX < -SWIPE_THRESHOLD) {
-          // Swipe izquierda => rotar a la derecha
           globalAngle += angleStep;
           updateCarousel();
         }
@@ -381,8 +420,10 @@
       modal.style.display = 'flex';
     }
 
+    // Evento para la esfera personal (EM)
     personalSphere.addEventListener('click', openProfileModal);
 
+    // Cerrar modal al hacer clic en la X o fuera
     closeModal.addEventListener('click', (e) => {
       if (e.target.id === 'closeModal' || e.target.id === 'modal') {
         modal.style.display = 'none';
@@ -393,6 +434,48 @@
         modal.style.display = 'none';
       }
     });
+
+    // Evento para el botón de cohete => “Ver más sobre mí” (Soft skills, Plan de Carrera, Certificaciones)
+    document.getElementById('moreAboutBtn').addEventListener('click', openRocketModal);
+
+    // Nueva función: openRocketModal
+    function openRocketModal() {
+      modalContent.classList.remove('circle');
+      modalContent.classList.add('square');
+      modalBody.innerHTML = `
+        <h2 style="color:#003366; text-align:center;">Más sobre mí</h2>
+
+        <hr/>
+        <div class="section-title">Soft Skills</div>
+        <div class="section-content">
+          <p><span class="icon-placeholder"></span> Comunicación efectiva - Lorem ipsum dolor sit amet...</p>
+          <p><span class="icon-placeholder"></span> Liderazgo - Lorem ipsum dolor sit amet...</p>
+          <p><span class="icon-placeholder"></span> Trabajo en equipo - Lorem ipsum dolor sit amet...</p>
+        </div>
+
+        <hr/>
+        <div class="section-title">Plan de Carrera</div>
+        <div class="section-content">
+          <p>Aquí podría ir un diagrama vertical con forma de serpiente, por ejemplo:</p>
+          <ul>
+            <li>2008 - Inicio de carrera en X</li>
+            <li>2010 - Certificación Y</li>
+            <li>2015 - Cambio de rol a Z</li>
+            <li>2020 - Objetivos futuros</li>
+          </ul>
+          <p>(Lorem ipsum para placeholder)</p>
+        </div>
+
+        <hr/>
+        <div class="section-title">Certificaciones</div>
+        <div class="section-content">
+          <p><span class="icon-placeholder"></span> PMP - Lorem ipsum ...</p>
+          <p><span class="icon-placeholder"></span> Scrum Master - Lorem ipsum ...</p>
+          <p><span class="icon-placeholder"></span> Oracle Certification - Lorem ipsum ...</p>
+        </div>
+      `;
+      modal.style.display = 'flex';
+    }
   </script>
 </body>
 </html>
