@@ -146,6 +146,7 @@
     .modal-content.square {
       border-radius: 5px;
       width: 400px;
+      z-index: 12000;	  
     }
     .close-btn {
       position: absolute;
@@ -153,12 +154,15 @@
       right: 10px;
       cursor: pointer;
       font-size: 18px;
-    }
+      z-index: 12000;	  
+
+	  }
     .profile-container {
       display: flex;
       flex-direction: column;
       gap: 20px;
-    }
+
+	  }
     .chart-section { text-align: center; }
     .radar-chart {
       position: relative;
@@ -554,6 +558,27 @@ document.getElementById('rightArrow').addEventListener('click', () => {
 });
 
 
+
+function hideArrowsAndSelect() {
+  document.getElementById('leftArrow').style.display = 'none';
+  document.getElementById('rightArrow').style.display = 'none';
+  document.getElementById('navSelectContainer').style.display = 'none';
+}
+
+function showArrowsAndSelect() {
+  document.getElementById('leftArrow').style.display = 'block';
+  document.getElementById('rightArrow').style.display = 'block';
+  document.getElementById('navSelectContainer').style.display = 'block';
+  
+  // Forzamos un recalculo después de un fotograma
+requestAnimationFrame(() => {
+  updateCarousel();
+});
+}
+
+
+
+
     /**********************************************
      * SWIPE EN PANTALLAS TÁCTILES
      **********************************************/
@@ -706,8 +731,10 @@ function openTechModalByIndex(index) {
 	
 	
     function openTechModal(techName) {
-      modalContent.classList.remove('square');
-      modalContent.classList.add('circle');
+  modalContent.classList.remove('square');
+  modalContent.classList.add('circle');
+  // Mostramos flechas y select
+  showArrowsAndSelect();
       modalBody.innerHTML = `
         <h2>${techName}</h2>
         <p>Aquí irán los enlaces a tus proyectos y demos de <strong>${techName}</strong>.</p>
@@ -716,8 +743,11 @@ function openTechModalByIndex(index) {
     }
 
     function openProfileModal() {
-      modalContent.classList.remove('circle');
-      modalContent.classList.add('square');
+  modalContent.classList.remove('circle');
+  modalContent.classList.add('square');
+  // Ocultamos flechas y select
+  hideArrowsAndSelect();
+  
       modalBody.innerHTML = `
         <h2>Perfil Profesional</h2>
         <div class="profile-container">
@@ -757,7 +787,9 @@ function openTechModalByIndex(index) {
     // Cerrar modal al hacer clic en la X o fuera
     closeModal.addEventListener('click', (e) => {
       if (e.target.id === 'closeModal' || e.target.id === 'modal') {
-        modal.style.display = 'none';
+    modal.style.display = 'none';
+    // Vuelve a mostrar flechas y select
+    showArrowsAndSelect();
       }
     });
     modal.addEventListener('click', (e) => {
@@ -771,8 +803,10 @@ function openTechModalByIndex(index) {
 
     // Nueva función: openRocketModal
     function openRocketModal() {
-      modalContent.classList.remove('circle');
-      modalContent.classList.add('square');
+  modalContent.classList.remove('circle');
+  modalContent.classList.add('square');
+  // Ocultamos flechas y select
+  hideArrowsAndSelect();
       modalBody.innerHTML = `
         <h2 style="color:#003366; text-align:center;">Más sobre mí</h2>
 
