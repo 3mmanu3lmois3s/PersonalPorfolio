@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portfolio - Carrusel 2D con Perspectiva Simulada</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    /* Contenedor principal ocupa toda la pantalla */
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    /* Esfera personal (tu marca) */
+    #personalSphere {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 170px;
+      height: 170px;
+      background: #007ACC;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 10;
+    }
+    /* Contenedor para el carrusel (anillo) */
+    #carousel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      /* No es visible, solo sirve de referencia para posicionar las esferas */
+      width: 0;
+      height: 0;
+    }
+    /* Cada esfera de tecnología */
+    .techSphere {
+      position: absolute;
+      background: #e91e63;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      text-align: center;
+      transition: transform 0.6s ease, opacity 0.6s ease, background-color 0.6s ease;
+      pointer-events: none; /* Por defecto, solo la frontal se habilita */
+    }
+    /* Flechas de navegación */
+    .arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 36px;
+      color: #007ACC;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid #007ACC;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      z-index: 20;
+    }
+    #leftArrow { left: 5%; }
+    #rightArrow { right: 5%; }
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      max-width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      position: relative;
+    }
+    .modal-content.circle {
+      border-radius: 50%;
+      width: 300px;
+      height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .modal-content.square {
+      border-radius: 5px;
+      width: 400px;
+    }
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .profile-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .chart-section { text-align: center; }
+    .radar-chart {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+    }
+    .radar-chart .circle {
+      position: absolute;
+      border: 1px dashed #333;
+      border-radius: 50%;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .radar-chart .level1 { width: 50px; height: 50px; }
+    .radar-chart .level2 { width: 100px; height: 100px; }
+    .radar-chart .level3 { width: 150px; height: 150px; }
+    .description-section, .skills-section, .links-section {
+      padding: 0 10px;
+    }
+    .skills-section ul {
+      list-style: disc;
+      margin-left: 20px;
+    }
+    .links-section a {
+      color: #007ACC;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="personalSphere">EM</div>
+    <div id="carousel"></div>
+    <div class="arrow" id="leftArrow">&#9664;</div>
+    <div class="arrow" id="rightArrow">&#9654;</div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content" id="modalContent">
+      <span class="close-btn" id="closeModal">&times;</span>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    /**********************************************
+     * CONFIGURACIÓN Y DATOS
+     **********************************************/
+    const technologies = [
+      "Java", "Python", ".NET", "JS", "Angular",
+      "ASP", "JSP", "AWS Cloud", "Azure Cloud", "Hilos",
+      "Stateless", "Serverless", "WebSockets", "ServiceWorkers", "Docker",
+      "React", "Vue", "SQL", "NoSQL", "COBOL",
+      "Demo ETL", "Lenguaje Go", "C#", "Electron", "Mobile"
+    ];
+    const totalTech = technologies.length;
+    const angleStep = 360 / totalTech;
+    let globalAngle = 0; // Ángulo global del carrusel
+    // Usamos un radio grande para el anillo
+    const ringRadius = 400;
+    // Definimos escalas máximas y mínimas
+    const maxScale = 1;
+    const minScale = 0.5;
+    // Factor de inclinación
+    const tiltFactor = 0.4;
+    // yMax / yMin para el anillo elíptico
+    const yMax = ringRadius * tiltFactor;
+    const yMin = -ringRadius * tiltFactor;
+
+    const carousel = document.getElementById('carousel');
+    const personalSphere = document.getElementById('personalSphere');
+
+    // Array para almacenar las referencias a cada esfera de tecnología
+    const sphereElements = [];
+
+    /**********************************************
+     * FUNCIÓN: Tamaño dinámico según el texto
+     **********************************************/
+    function getSphereSize(name) {
+      const minSize = 140;
+      const extraPerChar = 12;
+      const threshold = 6;
+      const len = name.length;
+      return len <= threshold ? minSize : minSize + (len - threshold) * extraPerChar;
+    }
+
+    /**********************************************
+     * CREAR CADA ESFERA DEL CARRUSEL
+     **********************************************/
+    technologies.forEach((tech, i) => {
+      const sphere = document.createElement('div');
+      sphere.classList.add('techSphere');
+      sphere.dataset.index = i;
+      const size = getSphereSize(tech);
+      sphere.style.width = size + "px";
+      sphere.style.height = size + "px";
+      sphere.style.lineHeight = size + "px";
+      sphere.textContent = tech;
+      // Agregamos clic, pero solo el frontal estará habilitado
+      sphere.addEventListener('click', () => {
+        openTechModal(tech);
+      });
+      carousel.appendChild(sphere);
+      sphereElements.push(sphere);
+    });
+
+    /**********************************************
+     * ACTUALIZAR POSICIONES, ESCALA, OPCACIDAD y POINTER EVENTS
+     **********************************************/
+    function updateCarousel() {
+      // Origen (0,0) asumido
+      let minDiff = Infinity;
+      sphereElements.forEach((sphere, i) => {
+        let angle = globalAngle + i * angleStep;
+        angle = ((angle % 360) + 360) % 360;
+        const rad = angle * Math.PI / 180;
+        const xPos = ringRadius * Math.cos(rad);
+        const yPos = ringRadius * Math.sin(rad) * tiltFactor;
+        const size = getSphereSize(sphere.textContent);
+
+        sphere.style.left = (xPos - size / 2) + "px";
+        sphere.style.top = (yPos - size / 2) + "px";
+
+        const scale = minScale + ((yPos - yMin) / (yMax - yMin)) * (maxScale - minScale);
+        sphere.style.transform = `scale(${scale})`;
+        sphere.style.opacity = scale;
+
+        const diff = Math.abs(yMax - yPos);
+        sphere.dataset.diff = diff;
+        if (diff < minDiff) {
+          minDiff = diff;
+        }
+        sphere.style.zIndex = Math.round(scale * 1000);
+      });
+
+      // Solo la esfera con diff ~ minDiff (±5) se pone en azul, las demás en gris
+      sphereElements.forEach((sphere) => {
+        const diff = parseFloat(sphere.dataset.diff);
+        if (Math.abs(diff - minDiff) < 5) {
+          sphere.style.pointerEvents = "auto";
+          sphere.style.backgroundColor = "#003366"; // Azul profundo
+        } else {
+          sphere.style.pointerEvents = "none";
+          sphere.style.backgroundColor = "#ccc"; // Gris
+        }
+      });
+    }
+    updateCarousel();
+
+    /**********************************************
+     * FLECHAS: Rotar el carrusel
+     **********************************************/
+    document.getElementById('leftArrow').addEventListener('click', () => {
+      globalAngle -= angleStep;
+      updateCarousel();
+    });
+    document.getElementById('rightArrow').addEventListener('click', () => {
+      globalAngle += angleStep;
+      updateCarousel();
+    });
+
+    /**********************************************
+     * SWIPE EN PANTALLAS TÁCTILES
+     **********************************************/
+    let touchStartX = 0;
+    const SWIPE_THRESHOLD = 50;
+
+    // Detectar touchstart y guardar la posición X inicial
+    document.getElementById('container').addEventListener('touchstart', (e) => {
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        touchStartX = e.changedTouches[0].clientX;
+      }
+    });
+
+    // Al terminar el toque, comparamos la posición final con la inicial
+    document.getElementById('container').addEventListener('touchend', (e) => {
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const deltaX = touchEndX - touchStartX;
+
+        if (deltaX > SWIPE_THRESHOLD) {
+          // Swipe derecha => rotar carrusel a la izquierda
+          globalAngle -= angleStep;
+          updateCarousel();
+        } else if (deltaX < -SWIPE_THRESHOLD) {
+          // Swipe izquierda => rotar carrusel a la derecha
+          globalAngle += angleStep;
+          updateCarousel();
+        }
+      }
+    });
+
+    /**********************************************
+     * MODALES
+     **********************************************/
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modalContent');
+    const modalBody = document.getElementById('modalBody');
+    const closeModal = document.getElementById('closeModal');
+
+    function openTechModal(techName) {
+      modalContent.classList.remove('square');
+      modalContent.classList.add('circle');
+      modalBody.innerHTML = `
+        <h2>${techName}</h2>
+        <p>Aquí irán los enlaces a tus proyectos y demos de <strong>${techName}</strong>.</p>
+      `;
+      modal.style.display = 'flex';
+    }
+
+    function openProfileModal() {
+      modalContent.classList.remove('circle');
+      modalContent.classList.add('square');
+      modalBody.innerHTML = `
+        <h2>Perfil Profesional</h2>
+        <div class="profile-container">
+          <div class="chart-section">
+            <h3>Gráfico de Características</h3>
+            <div class="radar-chart">
+              <div class="circle level1"></div>
+              <div class="circle level2"></div>
+              <div class="circle level3"></div>
+            </div>
+          </div>
+          <div class="description-section">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+          </div>
+          <div class="skills-section">
+            <h3>Habilidades</h3>
+            <ul>
+              <li>Desarrollo de software</li>
+              <li>Gestión de proyectos</li>
+              <li>Integración de sistemas</li>
+              <li>Comunicación efectiva</li>
+            </ul>
+          </div>
+          <div class="links-section">
+            <h3>Contactos</h3>
+            <p><a href="https://www.linkedin.com/in/dummy" target="_blank">LinkedIn</a></p>
+            <p><a href="https://www.pmi.org/" target="_blank">Perfil PMI</a></p>
+          </div>
+        </div>
+      `;
+      modal.style.display = 'flex';
+    }
+
+    personalSphere.addEventListener('click', openProfileModal);
+
+    closeModal.addEventListener('click', (e) => {
+      if (e.target.id === 'closeModal' || e.target.id === 'modal') {
+        modal.style.display = 'none';
+      }
+    });
+    modal.addEventListener('click', (e) => {
+      if (e.target.id === 'modal') {
+        modal.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
