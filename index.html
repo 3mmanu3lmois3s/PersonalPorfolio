@@ -16,12 +16,14 @@
       align-items: center;
       overflow: hidden;
     }
+
+	
     /* Contenedor principal ocupa toda la pantalla */
     #container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      background: #fff;
+	  background: rgba(255, 255, 255, 0.8);
       border: 1px solid #ccc;
       border-radius: 10px;
       overflow: hidden;
@@ -236,7 +238,14 @@
 }
 
 
-
+	#particles-js {
+	  position: absolute;
+	  top: 0;
+	  left: 0;
+	  width: 100%;
+	  height: 100%;
+	  z-index: 1000;
+	}
 
 /* Para los planetas elegibles */
 .planet:hover {
@@ -258,13 +267,114 @@ body {
   font-weight: 400;
 }
 
+/* Contenedor para centrar el select en la parte superior */
+#navSelectContainer {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+}
+
+/* Estilos del select */
+#navSelect {
+  padding: 8px 12px;
+  /* Aumentamos el espacio de padding derecho
+     para que la flecha no se superponga al texto */
+  padding-right: 40px; 
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+  color: #333;
+
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fff;
+  outline: none;
+  cursor: pointer;
+
+  /* Ocultamos la flecha nativa */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  /* Ajustamos la flecha SVG:
+     - Cambiamos su tamaño a 16px
+     - La movemos un poco más a la derecha con background-position
+  */
+  background: url("data:image/svg+xml;charset=UTF-8,%3Csvg fill='%23007ACC' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath d='M143 352.3l-136.4-136c-9.4-9.4-9.4-24.6 0-33.9L21.9 167c9.4-9.4 24.6-9.4 33.9 0L160 271.3l104.1-104.3c9.4-9.4 24.6-9.4 33.9 0l15.3 15.3c9.4 9.4 9.4 24.6 0 33.9L177 352.3c-9.4 9.4-24.6 9.4-34 0z'/%3E%3C/svg%3E") 
+              no-repeat right 12px center / 16px 16px;
+  
+  /* Transición en hover/focus */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#navSelect:hover {
+  border-color: #007ACC;
+}
+
+#navSelect:focus {
+  border-color: #007ACC;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.3);
+}
+
+/* Ocultar la flechita en IE/Edge (ms expand) */
+#navSelect::-ms-expand {
+  display: none;
+}
+
 
   </style>
  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap">
- 
+ <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
 </head>
 <body>
+
+<!-- Select list en la parte superior, centrado -->
+<div id="navSelectContainer" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 40000;">
+  <select id="navSelect">
+    <option value="">Selecciona una opción</option>
+    <optgroup label="PoC - Demos">
+      <option value="Java">Java</option>
+      <option value="Python">Python</option>
+      <option value=".NET">.NET</option>
+      <option value="JS">JS</option>
+      <option value="Angular">Angular</option>
+      <option value="ASP">ASP</option>
+      <option value="JSP">JSP</option>
+      <option value="AWS Cloud">AWS Cloud</option>
+      <option value="Azure Cloud">Azure Cloud</option>
+      <option value="Hilos">Hilos</option>
+      <option value="Stateless">Stateless</option>
+      <option value="Serverless">Serverless</option>
+      <option value="WebSockets">WebSockets</option>
+      <option value="ServiceWorkers">ServiceWorkers</option>
+      <option value="Docker">Docker</option>
+      <option value="React">React</option>
+      <option value="Vue">Vue</option>
+      <option value="SQL">SQL</option>
+      <option value="NoSQL">NoSQL</option>
+      <option value="COBOL">COBOL</option>
+      <option value="Demo ETL">Demo ETL</option>
+      <option value="Lenguaje Go">Lenguaje Go</option>
+      <option value="C#">C#</option>
+      <option value="Electron">Electron</option>
+      <option value="Mobile">Mobile</option>
+      <option value="PHP">PHP</option>
+      <option value="NodeJS">NodeJS</option>
+    </optgroup>
+    <optgroup label="Secciones Adicionales">
+      <option value="profile">Perfil Profesional</option>
+      <option value="more">Más sobre mí</option>
+    </optgroup>
+  </select>
+</div>
+
   <div id="container">
+
+
+
+	<div id="particles-js"></div>	
     <div id="personalSphere">EM</div>
     <div id="carousel"></div>
     <div class="arrow" id="leftArrow">&#9664;</div>
@@ -285,6 +395,7 @@ body {
     </div>
   </div>
 
+  
   <script>
     /**********************************************
      * CONFIGURACIÓN Y DATOS
@@ -424,7 +535,99 @@ sphereElements.forEach((sphere) => {
         }
       }
     });
+	 /**********************************************
+     * SELECT LIST
+     **********************************************/
+	
+	document.getElementById('navSelect').addEventListener('change', function() {
+  const value = this.value;
+  if (value === 'profile') {
+    openProfileModal();
+  } else if (value === 'more') {
+    openRocketModal();
+  } else if (value !== "") {
+    // Se asume que el valor es el nombre de una tecnología y se muestran sus proyectos.
+    openTechModal(value);
+  }
+  // Reinicia el select para que el usuario pueda volver a elegir
+  this.value = "";
+});
 
+	
+	
+	 /**********************************************
+     * CONFIGURAR PARTICULAS
+     **********************************************/
+	
+	particlesJS("particles-js", {
+  "particles": {
+    "number": {
+      "value": 50,
+      "density": {
+        "enable": true,
+        "value_area": 800
+      }
+    },
+    "color": {
+      "value": "#cccccc"
+    },
+    "shape": {
+      "type": ["circle", "edge"],
+      "stroke": {
+        "width": 0,
+        "color": "#000000"
+      }
+    },
+    "opacity": {
+      "value": 0.5,
+      "random": true,
+      "anim": {
+        "enable": true,
+        "speed": 1,
+        "opacity_min": 0.1,
+        "sync": false
+      }
+    },
+    "size": {
+      "value": 3,
+      "random": true,
+      "anim": {
+        "enable": true,
+        "speed": 3,
+        "size_min": 0.1,
+        "sync": false
+      }
+    },
+    "line_linked": {
+      "enable": false
+    },
+    "move": {
+      "enable": true,
+      "speed": 0.5,
+      "direction": "none",
+      "random": true,
+      "straight": false,
+      "out_mode": "out",
+      "bounce": false
+    }
+  },
+  "interactivity": {
+    "detect_on": "canvas",
+    "events": {
+      "onhover": {
+        "enable": false
+      },
+      "onclick": {
+        "enable": false
+      },
+      "resize": true
+    }
+  },
+  "retina_detect": true
+});
+	
+		
+	
     /**********************************************
      * MODALES
      **********************************************/
@@ -535,6 +738,7 @@ sphereElements.forEach((sphere) => {
       `;
       modal.style.display = 'flex';
     }
+		
   </script>
 </body>
 </html>
