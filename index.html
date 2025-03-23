@@ -46,7 +46,7 @@
       font-weight: bold;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
       cursor: pointer;
-      z-index: 10;
+      z-index: 2000;
     }
     /* Contenedor para el carrusel (anillo) */
     #carousel {
@@ -87,7 +87,7 @@
       align-items: center;
       cursor: pointer;
       user-select: none;
-      z-index: 20;
+      z-index: 20000;
     }
     #leftArrow { left: 5%; }
     #rightArrow { right: 5%; }
@@ -224,6 +224,7 @@
   cursor: pointer;
   /* El padding es opcional, sirve para que haya espacio clicable alrededor del SVG */
   padding: 8px;
+  z-index: 3000;
 }
 
 #moreAboutBtn svg {
@@ -449,8 +450,7 @@ body {
       sphere.style.lineHeight = size + "px";
       sphere.textContent = tech;
       sphere.addEventListener('click', () => {
-        openTechModal(tech);
-      });
+		openTechModalByIndex(i);      });
       carousel.appendChild(sphere);
       sphereElements.push(sphere);
     });
@@ -458,59 +458,101 @@ body {
     /**********************************************
      * ACTUALIZAR POSICIONES, ESCALA, OPCACIDAD y POINTER EVENTS
      **********************************************/
-    function updateCarousel() {
-      const cx = 0;
-      const cy = 0;
-      let minDiff = Infinity;
-      sphereElements.forEach((sphere, i) => {
-        let angle = globalAngle + i * angleStep;
-        angle = ((angle % 360) + 360) % 360;
-        const rad = angle * Math.PI / 180;
-        const xPos = ringRadius * Math.cos(rad);
-        const yPos = ringRadius * Math.sin(rad) * tiltFactor;
-        const size = getSphereSize(sphere.textContent);
+function updateCarousel() {
+  let minDiff = Infinity;
+  let minDiffIndex = -1;
 
-        sphere.style.left = (cx + xPos - size / 2) + "px";
-        sphere.style.top = (cy + yPos - size / 2) + "px";
+  // Primer bucle: calculamos la posición, escala, diff...
+  sphereElements.forEach((sphere, i) => {
+    let angle = globalAngle + i * angleStep;
+    angle = ((angle % 360) + 360) % 360;
+    const rad = angle * Math.PI / 180;
+    const xPos = ringRadius * Math.cos(rad);
+    const yPos = ringRadius * Math.sin(rad) * tiltFactor;
+    const size = getSphereSize(sphere.textContent);
 
-        const scale = minScale + ((yPos - yMin) / (yMax - yMin)) * (maxScale - minScale);
-        sphere.style.transform = `scale(${scale})`;
-        sphere.style.opacity = scale;
+    sphere.style.left = (xPos - size / 2) + "px";
+    sphere.style.top = (yPos - size / 2) + "px";
 
-        const diff = Math.abs(yMax - yPos);
-        sphere.dataset.diff = diff;
-        if (diff < minDiff) {
-          minDiff = diff;
-        }
-        sphere.style.zIndex = Math.round(scale * 1000);
-      });
+    const scale = minScale + ((yPos - yMin) / (yMax - yMin)) * (maxScale - minScale);
+    sphere.style.transform = `scale(${scale})`;
+    sphere.style.opacity = scale;
 
-sphereElements.forEach((sphere) => {
-  const diff = parseFloat(sphere.dataset.diff);
-  if (Math.abs(diff - minDiff) < 5) {
-    sphere.style.pointerEvents = "auto";
-    sphere.style.backgroundColor = "#003366"; // Azul profundo
-    sphere.classList.add('planet');  // Agrega la clase 'planet'
-  } else {
-    sphere.style.pointerEvents = "none";
-    sphere.style.backgroundColor = "#ccc"; // Gris
-    sphere.classList.remove('planet'); // Quita la clase 'planet'
-  }
-});
+    const diff = Math.abs(yMax - yPos);
+    sphere.dataset.diff = diff;
+
+    // Vamos registrando el índice del que tenga la diff más pequeña
+    if (diff < minDiff) {
+      minDiff = diff;
+      minDiffIndex = i;
+    }
+    
+    // Ajustamos z-index en función de la escala
+    sphere.style.zIndex = Math.round(scale * 1000);
+  });
+
+  // Segundo bucle: solo marcamos "clicable" la esfera con el minDiffIndex
+  sphereElements.forEach((sphere, i) => {
+    if (i === minDiffIndex) {
+      sphere.style.pointerEvents = "auto";
+      sphere.style.backgroundColor = "#003366"; // Azul profundo
+      sphere.classList.add('planet');
+    } else {
+      sphere.style.pointerEvents = "none";
+      sphere.style.backgroundColor = "#ccc"; // Gris
+      sphere.classList.remove('planet');
+    }
+  });
+
+
     }
     updateCarousel();
 
     /**********************************************
      * FLECHAS: Rotar el carrusel
      **********************************************/
-    document.getElementById('leftArrow').addEventListener('click', () => {
-      globalAngle -= angleStep;
-      updateCarousel();
-    });
-    document.getElementById('rightArrow').addEventListener('click', () => {
-      globalAngle += angleStep;
-      updateCarousel();
-    });
+// Variable global para saber qué planeta se muestra en el modal
+let currentPlanetIndex = null;
+
+// Función para saber si el modal está abierto
+function isModalOpen() {
+  return modal.style.display === 'flex';
+}
+
+// Listener para la flecha izquierda
+document.getElementById('leftArrow').addEventListener('click', () => {
+  if (isModalOpen()) {
+    // Navegar al planeta anterior dentro del modal
+    currentPlanetIndex = (currentPlanetIndex - 1 + technologies.length) % technologies.length;
+    // Si quieres que el carrusel gire en el fondo, ajusta el ángulo:
+    globalAngle += angleStep;
+    updateCarousel();
+    // Ahora recarga el contenido del modal con el planeta anterior
+    openTechModalByIndex(currentPlanetIndex);
+  } else {
+    // Modal cerrado => comportamiento normal de girar el carrusel
+    globalAngle -= angleStep;
+    updateCarousel();
+  }
+});
+
+// Listener para la flecha derecha
+document.getElementById('rightArrow').addEventListener('click', () => {
+  if (isModalOpen()) {
+    // Navegar al planeta siguiente dentro del modal
+    currentPlanetIndex = (currentPlanetIndex + 1) % technologies.length;
+    // Girar el carrusel en el fondo si lo deseas
+    globalAngle -= angleStep;
+    updateCarousel();
+    // Recarga el contenido del modal con el planeta siguiente
+    openTechModalByIndex(currentPlanetIndex);
+  } else {
+    // Modal cerrado => comportamiento normal
+    globalAngle += angleStep;
+    updateCarousel();
+  }
+});
+
 
     /**********************************************
      * SWIPE EN PANTALLAS TÁCTILES
@@ -636,6 +678,33 @@ sphereElements.forEach((sphere) => {
     const modalBody = document.getElementById('modalBody');
     const closeModal = document.getElementById('closeModal');
 
+	
+
+//let currentPlanetIndex = null; // Variable global para saber qué planeta se está mostrando en el modal
+
+function openTechModalByIndex(index) {
+  // Guarda el índice en una variable global
+  currentPlanetIndex = index;
+
+  // Recupera el nombre de la tecnología usando el array `technologies`
+  const techName = technologies[index];
+
+  // Ajusta el modal a modo "circle"
+  modalContent.classList.remove('square');
+  modalContent.classList.add('circle');
+
+  // Actualiza el contenido del modal
+  modalBody.innerHTML = `
+    <h2>${techName}</h2>
+    <p>Aquí irán los enlaces a tus proyectos y demos de <strong>${techName}</strong>.</p>
+  `;
+
+  // Muestra el modal
+  modal.style.display = 'flex';
+}
+
+	
+	
     function openTechModal(techName) {
       modalContent.classList.remove('square');
       modalContent.classList.add('circle');
